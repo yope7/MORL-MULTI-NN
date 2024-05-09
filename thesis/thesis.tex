@@ -1,0 +1,288 @@
+\documentclass[12pt,oneside]{ise-thesis} % 片面印刷の場合
+%\documentclass[12pt,twoside]{ise-thesis} % 両面印刷の場合
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\usepackage{amsmath}
+
+\thesis{\bachelor}
+%\thesis{\master}
+%修士学位論文の場合は\master
+%卒業研究報告書の場合は\bachelor
+
+\title{ユーザ利用機会公平性を考慮するクラウドバースティング環境向けスケジューリング手法の提案}
+% \etitle{English Title}
+
+\author{野口 祥生}
+\eauthor{このページがなぜか消えないので近いうちにデバッグする}
+
+\supervisor{○○ ○○}
+
+%提出期限
+\include{define}
+\deadline{\提出日} 
+
+\abstract{
+内容梗概を書く．
+段落をかえる場合には，
+通常の\LaTeX と同じやりかたで空行を挿入すれば良い．
+
+例えば，このように．
+}
+
+\keyword{内容梗概，段落}
+
+% \eabstract{
+% First paragraph. First paragraph. First paragraph.
+% First paragraph. First paragraph. First paragraph.
+% First paragraph. First paragraph. First paragraph.
+% First paragraph. First paragraph. First paragraph.
+% First paragraph. First paragraph. First paragraph.
+% First paragraph. First paragraph. First paragraph.
+
+% Second paragraph. Second paragraph. Second paragraph.
+% Second paragraph. Second paragraph. Second paragraph.
+% Second paragraph. Second paragraph. Second paragraph.
+% Second paragraph. Second paragraph. Second paragraph.
+
+% Third paragraph. Third paragraph. Third paragraph.
+% Third paragraph. Third paragraph. Third paragraph.
+% }
+
+% \ekeyword{English, Abstract}
+
+% 行間調整
+\renewcommand{\baselinestretch}{1.15}
+\sectionstretch{1.0}		% セクション見出し前後の行間
+\liststretch{1.0}		% 箇条書き環境の行間
+
+\begin{document}
+
+% 表紙のコンパイルでエラーが出る時は、次の行をコメントアウト。表紙は、
+% Word ファイルで作成
+\coverpage
+
+\tableofcontents
+
+\body
+
+\chapter{序論}
+
+一部のHPCシステムでは，計算機需要の一時的な高まりにより，ユーザのジョブ投入からジョブが実行されるまでの時間（ジョブ待ち時間）が長くなる問題がある．
+計算機需要が高まった際に，一部ジョブをクラウド計算資源へ割り当てるクラウドバースティング機能が導入されている．
+% クラウドバースティングの概要を図\ref{cb}に示す．
+% ジョブスケジューラは
+
+大阪大学サイバーメディアセンターのスーパーコンピュータSQUIDでは、計算機需要が高まった際に、管理者のコスト負担でクラウド計算資源で利用者のジョブを実行させることで、待ち時間の短縮を図っている．
+しかし、利用者の待ち時間短縮を実現するために，どのジョブをクラウド計算資源に割り当てるべきかの決定は未だ課題である．
+
+先行研究では, ジョブをクラウドで実行する際の費用対効果をクラウドコストとジョブ待ち時間の加重和で表現する単目的強化学習により，費用対効果を高めるジョブスケジューリングが提案された．
+しかし, 学術研究機関のスーパーコンピュータのジョブスケジューリングでは, 多くのユーザに計算資源を提供するという観点で, 費用対効果に加えてユーザ間の利用機会公平性（公平性）を考慮する必要がある. 
+
+
+
+本研究の目的は, クラウドバースティング機能を有する高性能計算機システムを対象に, 費用対効果に加えユーザ間の公平性を考慮したジョブスケジューリングアルゴリズムの提案である. 
+先行研究を多目的強化学習に変更し, 費用対効果とユーザ間の公平性の両方を目的としたパレート最適化を行うことで, 研究目的を実現する.
+%本研究では，クラウドバースティング機能を有するスパコンを対象としたスケジューリングアルゴリズムの提案を行う．
+%なお，ジョブ待ち時間の削減とクラウドコストの削減はトレードオフの関係にあり，それぞれは一つの目的を改善しようとすると他の目的が犠牲になる関係にある．
+%したがって，それぞれの目的を可能な限り最適化するようなジョブスケジューリングアルゴリズムの開発を目指す．
+
+本論文の構成は以下の通りである．
+N章では，提案アルゴリズムの基盤技術となる多目的強化学習について述べる．
+N章では，費用対効果とユーザ間の利用機会公平性を最適化する多目的強化学習型スケジューリングアルゴリズムを提案する．
+N章では，3章で提案したジョブスケジューリングを評価する．
+N章では，本研究に関連する研究をあげる．
+N章では，本研究のまとめと今後の課題について述べる．
+\chapter{多目的強化学習}
+
+% \begin{figure}[h]
+%  \hspace*{\fill}
+%  \includegraphics[scale=0.6]{figure.eps}
+%  \hspace*{\fill}
+%  \caption{図のサンプル：電気系E6棟}
+% \end{figure}
+
+本章では，前提となる技術の詳細を説明する．
+まず\ref{morl}節で，提案する多目的強化学習型スケジューリングアルゴリズムの基盤となる強化学習について説明する．
+\ref{a}節では，強化学習の手法の一つであるQ学習およびDQNについて説明する．
+\ref{d}節では，多目的教科学習の手法の一つであるPareto Q-learningについて説明する． 
+最後に，\ref{b}節では，本研究で用いる深層強化学習手法であるpareto-DQNについて説明する．
+
+\section{強化学習}
+強化学習は機械学習における学習アルゴリズムの1つで，試行錯誤を通して環境に適応する学習制御の枠組みである．
+% 教師あり学習とは異なり，状態に対する正しい行動を意味する正解データが存在しない．
+強化学習ではエージェントと環境が状態，行動，報酬を相互にやり取りする中でエージェントが自律的に最適解を学習していく．
+強化学習が対象とする問題は，マルコフ決定過程（Markov Decision Process）でモデル化される．
+マルコフ決定過程の概要を図\ref{markov}に示す．
+
+sを状態空間，aを行動空間とする．ある時点tにおいて，エージェントは環境から状態$s_t$を受け取り，方策$\pi（s)$に従い行動$a_t$をとる．
+環境に行動$a_t$が入力され，状態$s_t$は状態$s_{t+1}$に遷移する．
+この時，状態$s_t$と行動$a_t$により即時報酬$r_t$が計算され，エージェントは即時報酬$r_t$に基づいて方策$\pi(s)$を更新する．
+強化学習は，この即時報酬$r_t$の累積和を最大化する方策$\pi(s)$を求めることを目的とする．
+
+ある状態$s_t$に対してエージェントが行動$a_t$を選択し，次の状態$s_{t+1}$に遷移すると共に報酬$r_{t+1}$を受け取る過程を1ステップと呼び，学習ステップのまとまりを1エピソードと呼ぶ．
+
+\begin{figure}[t]
+ \hspace*{\fill}
+ \label{markov}
+ \includegraphics[scale=0.3]{figures/RL.eps}
+ \hspace*{\fill}
+ \caption{強化学習の概要図}
+\end{figure}
+
+
+\section{Q学習およびDQN}
+Q学習は，各状態において，Q値が最大となる行動を取るように学習を行う方法である．
+Q値は価値観数の一種であり，時点tにおいて状態$s_t$で行動$a_t$をとった後，方策$\pi(s)$に従って行動した時の割引報酬和の期待値を表す．
+これを，$Q(s,a)$と表記する．
+$Q(s,a)$の更新式は次の式\ref{Q}で定義される．
+\begin{equation}
+\label{Q}
+    Q(s,a) \leftarrow{}Q(s,a)+\alpha(r+\gamma \underset{a'\in A}{\max}Q(s',a')-Q(s,a))
+\end{equation}
+
+ここで，$\alpha$は学習率である．また，$\gamma$は割引率であり，将来の報酬を割り引く際に用いる値である．
+ある時点tでの状態$s_t$から次の状態$s_{t+1}$に遷移した時，そのQ値を状態$s_{t+1}$に近づけることを意味する．
+
+DQNは，ある状態に対してとり得る全ての行動の価値関数Q値をニューラルネットワークを用いて近似する手法である．
+DQNでは，Target Networkと呼ばれるネットワークを用いて誤差関数の計算を行う．
+Target NetworkはQ値の近似に用いるニューラルネットワークと同様の構造を持つが，その重みはQ値の近似に用いるニューラルネットワークが持つ重み$\theta$の数ステップ前のパラメータ$\theta^-$である．
+DQNにおける損失関数は次の式\ref{loss}で与えられる．
+\begin{equation}
+\label{loss}
+    L_{\theta} = E[\frac{1}{2}(r+\gamma \underset{a'}{max}Q(s',a;\theta^-) - Q(s,a,;\theta))^2]
+\end{equation}
+DQNでは，環境とエージェントが相互にやり取りする中で蓄積された状態，行動，次状態，報酬をバッチとして集約する．
+学習時には蓄積された情報からランダムにサンプリングしたバッチをニューラルネットワークに与えて学習を行う．
+
+% \section{Pareto-Q}
+% Pareto-QはQ学習の枠組みを多目的な問題に拡張した手法である．
+% 多目的強化学習では，それぞれの目的に対して報酬が独立に存在し，価値関数も目的の数だけ存在する．
+% そのため，それぞれの目的に対して異なる方策が最適となる可能性がある．
+% 従って，単純にQ学習の枠組みを多目的強化学習に用いることはできない．
+% Pareto-Qでは，Q値の集合は以下の式\ref{paretoQ}で表される．
+% \begin{equation}
+%     \label{paretoQ}
+%     Q_{set}(s,a)=\Bar{R}(s,a)+\gamma ND_t(s,a)
+% \end{equation}
+
+
+
+% \section{Pareto-DQN}
+\section{多目的強化学習}
+
+
+
+\chapter{関連研究}
+
+
+
+\chapter{提案}
+本章では，本研究で提案するマルチエージェント強化学習型スケジューリングアルゴリズムについて述べる．まず，\ref{ab}節で提案アルゴリズムの概要を説明する．
+次に，\ref{flame}節で強化学習を用いてジョブスケジューリングをするために設計した枠組みについて説明する．
+最後に，\ref{flow}節で，提案アルゴリズムの学習の流れについて説明する．
+\section{提案手法の概要}
+まず，環境はオンプレミス計算資源の利用状況，クラウド計算資源の利用状況，ジョブキューで待機するジョブの情報をエージェントの各ニューラルネットワークに入力する．
+ニューラルネットワークの出力により行動が選択され，スケジューリングが行われる．スケジューリングによって各計算資源の利用状況とジョブキューの内容が変化し，状態は次の状態に遷移する．
+遷移後の状態が観測されることにより，報酬がエージェントに与えられる．このような過程の繰り返しにより，エージェントは最適なスケジューリングを学習する．
+
+\section{強化学習の設計}
+\subsection{状態}
+状態とは，強化学習が対象とする局面を表す変数である．
+\ref{state}に状態の概要を示す．式では次のように与えられる．
+\begin{equation}
+    S=\{s|s=(C,C',Q)\}
+\end{equation}
+ここで，C,C'Qはそれぞれオンプレミス計算資源の利用状況，クラウド計算資源の利用状況，ジョブキューの観測部分の状況を示す．
+
+オンプレミス計算資源の利用状況Cは0か1の成分から成る,$n_p \times n_t$の行列である．
+ここで，$n_p$はオンプレミス計算資源のノード数，$n_t$はスライディングウィンドウのタイムスライス数を表す．
+Cの各要素$c=\{i,j\},i \in \{1,2,...n_p\},j \in \{1,2,...n_t\}$は，現在のタイムスライスから$n_t$番目のタイムスライスまでの，j番目のノードにおけるジョブの割り当て状況を表している．
+$c_{i,j}=0$のとき，ジョブの割り当てがなく，割り当て可能であることを意味し，$c_{i,j}=1$のとき，ジョブ割り当てがすでにされていて割り当て不可能であることを意味する．
+
+また，初期状態において，計算資源のどのタイムスライスにおいてもすべてのノードにジョブ割り当てはなく，割り当て可能状態である．したがって,すべてのi,jに対して$c_{i,j}=0$である．
+
+クラウド計算資源の利用状況$C'$は，オンプレミス計算資源の利用状況と同様の規則によって定義される行列である．
+
+ジョブキューの観測部分Ｑは$n_0\times 4$行列であり，$n_0$はジョブキューの観測部分の長さを表す．
+Qは式では次の式\ref{q}のように与えられる．
+\begin{equation}
+\label{q}
+    Q=[q_1 \quad q_2 \quad ... \quad q_{n_0}]^T
+\end{equation}
+ここで，Qの各成分$q_i,i \in \{1,2,...n_0\}$はジョブキューの先頭からi番目のジョブの情報を表す．$q_i=[q_{i,1},q_{i,2},q_{i,3},q_{i,4}]$と表される．
+$q_i$の各成分$q_{i,1},q_{i,2},q_{i,3},q_{i,4},$はそれぞれ，そのジョブの実行にかかるタイムスライス数，そのジョブの処理に必要なノード数，そのジョブの生成時刻，そのジョブを生成したユーザIDを表す．
+
+\subsection{行動}
+行動aはジョブキューの観測部分のジョブをどのようにスケジューリングするかを意味する．
+一度の行動で，ジョブキューで待機するジョブを行動ごとに定められたルールに基づいて1つ選択してオンプレミス計算資源かクラウド計算資源のどちらかに割り当てる．
+図\ref{action}に行動の概要を示す．式では式\ref{eqaction}のように与えられる．
+\begin{equation}
+    A=\{a|a=(\delta_m,\delta_c),\delta_m \in \{0,1\},\delta_c \in \{0,1\}\}
+\end{equation}
+ここで，$\delta_m,\delta_c$はそれぞれジョブ選択アルゴリズム，ジョブをクラウド計算資源に割り当てるかどうかのフラグを示す．
+ジョブ選択アルゴリズムは，FIFO(First In First Out)によるジョブ選択に加え，ユーザの過去の利用履歴
+
+
+\chapter{評価}
+\chapter{結論}
+
+
+
+結論を書く．謝辞，参考文献，付録をこのあとにつけることができる．
+
+
+\acknowledgement
+
+謝辞はこのように，\verb+\acknowledgement +コマンドを用いて書く．
+
+% 参考文献
+% 日本語BibTeX (pbibtex/jbibtex) を使う場合
+% \bibliographystyle{ieice}
+% \bibliography{./sample}
+
+% 日本語BibTeX (pbibtex/jbibtex) を使わない場合
+%   \begin{thebibliography}{99}
+%   \bibitem{Shirakawa1} 山田晃久，築山修治，白川功，神戸尚志，“知識ベース
+%           システムによるCMOS論理セル自動生成，”信学論(A)，vol.J72--A，
+%           no.1，pp.95--104，Jan.\ 1989.
+%   \bibitem{Nishio} S.\ Masuyama, T.\ Ibaraki, S.\ Nishio, and T.\ Hasegawa,
+%           ``Shortest semijoin schedule for a local area distributed
+%           database system,'' vol.SE--13, no.5, pp.602--606, May 1987.
+%   \bibitem{Fujioka} K.\ Nakamae, H.\ Fujioka, and K.\ Ura,
+%           ``Electron-beam-induced current in a chemical-vapour-deposited
+%           SiO$_2$ passivation layer on an mos structure with a
+%           non-penetrating electron beam,'' J.\ Phys.\ D: Appl.\ Phys.,
+%           vol.24, no.6, pp.963--968, June 1991.
+%   \bibitem{Shirakawa2} 白川功，“工学論文とは[I]，”信学誌，vol.73，no.5，
+%           pp.542--548，May 1990.
+%   \bibitem{Ishiura1} N.\ Ishiura, H.\ Sawada, and S.\ Yajima,
+%           ``Minimization of binary decision diagrams based on exchanges
+%           of variables,'' Proc.\ IEEE Int.\ Conf.\ on Computer-Aided Design,
+%           pp.472--475, Santa Clara, U.S.A., Nov.\ 1991.
+%   \bibitem{Ishiura2} 石浦菜岐佐，“二分決定グラフからの組合せ論理回路の合
+%           成，”信学技報, VLD91--108，pp.33--39，Dec.\ 1991.
+%   \bibitem{Terada} 坪田浩及，田村俊之，小守伸史，寺田浩詔，``1 チップデー
+%           タ駆動形プロセッサのアーキテクチャ評価，”信学会「並列処理シンポ
+%           ジウムJSPP--92」予稿集，pp.313--320，June 1992.
+%   \bibitem{Shirakawa3} 白川功，篠田庄司，回路理論の基礎，コロナ社，東京，
+%           1990.
+%   \bibitem{Fujiwara} H.\ Fujiwara, Logic Testing and Design for
+%           Testability, MIT Press, Massachusetts, U.S.A., 1985.
+%   \bibitem{Karp} R.M.\ Karp, ``Reducibility among combinatorial problems,''
+%           in Complexity of Computer Computations, eds.\ R.\ Miller, and
+%           J.\ Thatcher, pp.85--103, Plenum Press, New York, 1972.
+%   \end{thebibliography}
+
+% 付録
+\appendix
+
+付録はこのように，\verb+\appendix +コマンドを用いて書く．
+付録が複数あり「付録A」「付録B」などとしたい場合は，
+\begin{quote}
+\verb+\appendix[A]+\\
+\verb+\appendix[B]+
+\end{quote}
+などとすればよい．
+
+\end{document}
+
+
